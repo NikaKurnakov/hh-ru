@@ -27,7 +27,7 @@ def predict_rub_salary_hh(vacancies):
         if salary and salary.get('currency') == 'RUR':
             salary_from = salary.get('from')
             salary_to = salary.get('to')
-            salary_calculation = salary_calculation(salary_to, salary_from)
+            salary_calculation = get_salary_calculation(salary_to, salary_from)
             if salary_calculation:
                 predicted_salaries_hh.append(salary_calculation)
 
@@ -89,7 +89,7 @@ def predict_rub_salary_for_superJob(vacancies):
     for vacancy in vacancies:
         payment_from = vacancy.get("payment_from")
         payment_to = vacancy.get("payment_to")
-        salary_calculation = salary_calculation(payment_to, payment_from)
+        salary_calculation = get_salary_calculation(payment_to, payment_from)
         if salary_calculation:
             predicted_salaries_sj.append(salary_calculation)
 
@@ -159,8 +159,8 @@ def main():
     ]
     languages_rate_sj = make_superjob_languages_rate(superjob_secret_key, programming_languages)
     languages_rate_hh = make_headhunter_languages_rate(programming_languages)
-    table_sj = print_table(languages_rate_sj, "SuperJob Moscow")
-    table_hh = print_table(languages_rate_hh, "HeadHunter Moscow")
+    table_sj = create_table(languages_rate_sj, "SuperJob Moscow")
+    table_hh = create_table(languages_rate_hh, "HeadHunter Moscow")
     print(f"{table_sj.table}\n\n{table_hh.table}")
 
 
