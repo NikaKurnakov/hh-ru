@@ -117,7 +117,7 @@ def make_superjob_languages_rate(superjob_secret_key, programming_languages):
         vacancies_sj = get_vacancies_superjob(superjob_secret_key, lang)
         total_vacancies_sj = vacancies_sj
         predicted_salaries_sj = [predict_rub_salary_for_superJob(vacancy) for vacancy in vacancies_sj]
-        predicted_salaries_sj = [sj for sj in predicted_salaries_sj if sj]
+        predicted_salaries_sj = [salary for salary in predicted_salaries_sj if salary]
         average_salary_sj = sum(predicted_salaries_sj) / len(predicted_salaries_sj) if predicted_salaries_sj else None
         stats_sj[lang] = {
             "vacancies_found": total_vacancies_sj,
@@ -133,7 +133,7 @@ def make_headhunter_languages_rate(programming_languages):
         vacancies_hh = get_vacancies_hh(lang)
         total_vacancies_hh = vacancies_hh
         predicted_salaries_hh = [predict_rub_salary_hh(vacancy) for vacancy in vacancies_hh]
-        predicted_salaries_hh = [hh for hh in predicted_salaries_hh if hh]
+        predicted_salaries_hh = [salary for salary in predicted_salaries_hh if salary]
         average_salary_hh = sum(predicted_salaries_hh) / len(predicted_salaries_hh) if predicted_salaries_hh else None
         stats_hh[lang] = {
             "vacancies_found": total_vacancies_hh,
