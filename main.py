@@ -80,7 +80,7 @@ def get_vacancies_superjob(superjob_secret_key, programming_languages, max_attem
         vacancies_sj.extend(response.get('objects'))
         if not response.get('more'):
             break
-    return vacancies_sj
+    return vacancies_sj['total']
 
 
 def predict_rub_salary_for_superJob(vacancies):
