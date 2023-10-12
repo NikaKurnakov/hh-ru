@@ -2,6 +2,7 @@ import requests
 from pprint import pprint
 from dotenv import load_dotenv
 import os
+import json
 from itertools import count
 from tabulate import tabulate
 from contextlib import suppress
@@ -17,22 +18,6 @@ def get_salary_calculation(payment_from, payment_to):
     else:
         salary = None
     return salary
-
-
-def predict_rub_salary_hh(vacancies):
-    predicted_salaries_hh = []
-
-    for vacancy in vacancies:
-        salary = vacancy.get('salary')
-        if salary and salary.get('currency') == 'RUR':
-            salary_from = salary.get('from')
-            salary_to = salary.get('to')
-            salary_calculation = get_salary_calculation(salary_to, salary_from)
-            if salary_calculation:
-                predicted_salaries_hh.append(salary_calculation)
-
-    return predicted_salaries_hh
-
 
 
 def get_vacancies_hh(programming_languages, max_attempts=3, max_pages=None):
@@ -53,6 +38,22 @@ def get_vacancies_hh(programming_languages, max_attempts=3, max_pages=None):
             if page >= response['pages']:
                 break
     return vacancies_hh
+
+
+def predict_rub_salary_hh(vacancies_hh):
+    total_salary = 0
+    vacancies_count = 0
+    for vacancy in vacancies_hh:
+        salary_from = vacancy.get("payment_from")
+        salary_to = vacancy.get("payment_to")
+        salary = predict_rub_salary(salary_from, salary_to)
+        if salary:
+            total_salary += salary
+            vacancies_count += 1
+    average_salary = 0
+    if vacancies_count:
+        average_salary = total_salary / vacancies_count
+    return vacancies_count, average_salary
 
 
 def get_vacancies_superjob(superjob_secret_key, programming_languages, max_attempts=3, max_pages=None):
@@ -77,23 +78,28 @@ def get_vacancies_superjob(superjob_secret_key, programming_languages, max_attem
             else:
                 raise ex
         response = response.json()
-        vacancies_sj.extend(response.get('objects'))
-        if not response.get('more'):
-            break
-    return vacancies_sj['total']
+        response_data = response.get('objects')
+        for response in response_data:
+            vacancies_sj.extend(response)
+            if not response.get('more'):
+                break
+    return vacancies_sj
 
 
-def predict_rub_salary_for_superJob(vacancies):
-    predicted_salaries_sj = []
-
-    for vacancy in vacancies:
-        payment_from = vacancy.get("payment_from")
-        payment_to = vacancy.get("payment_to")
-        salary_calculation = get_salary_calculation(payment_to, payment_from)
-        if salary_calculation:
-            predicted_salaries_sj.append(salary_calculation)
-
-    return predicted_salaries_sj
+def predict_rub_salary_for_superJob(vacancies_sj):
+    total_salary = 0
+    vacancies_count = 0
+    for vacancy in vacancies_sj:
+        salary_from = vacancy.get("payment_from")
+        salary_to = vacancy.get("payment_to")
+        salary = get_salary_calculation(salary_from, salary_to)
+        if salary:
+            total_salary += salary
+            vacancies_count += 1
+    average_salary = 0
+    if vacancies_count:
+        average_salary = total_salary / vacancies_count
+    return vacancies_count, average_salary
 
 
 
@@ -116,7 +122,8 @@ def make_superjob_languages_rate(superjob_secret_key, programming_languages):
     for lang in programming_languages:
         vacancies_sj = get_vacancies_superjob(superjob_secret_key, lang)
         total_vacancies_sj = vacancies_sj
-        predicted_salaries_sj = [predict_rub_salary_for_superJob(vacancy) for vacancy in vacancies_sj]
+        # print(type(total_vacancies_sj))
+        predicted_salaries_sj = [predict_rub_salary_for_superJob(vacancy) for vacancy in vacancies_sj if isinstance(vacancy, dict)]
         predicted_salaries_sj = [salary for salary in predicted_salaries_sj if salary]
         average_salary_sj = sum(predicted_salaries_sj) / len(predicted_salaries_sj) if predicted_salaries_sj else None
         stats_sj[lang] = {
@@ -159,14 +166,13 @@ def main():
     ]
     languages_rate_sj = make_superjob_languages_rate(superjob_secret_key, programming_languages)
     languages_rate_hh = make_headhunter_languages_rate(programming_languages)
-    table_sj = create_table(languages_rate_sj, "SuperJob Moscow")
-    table_hh = create_table(languages_rate_hh, "HeadHunter Moscow")
+    table_sj = print_table(languages_rate_sj, "SuperJob Moscow")
+    table_hh = print_table(languages_rate_hh, "HeadHunter Moscow")
     print(f"{table_sj.table}\n\n{table_hh.table}")
 
 
 
 if __name__ == "__main__":
     main()
-
 
 
