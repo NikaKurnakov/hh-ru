@@ -1,10 +1,8 @@
 import requests
-from pprint import pprint
 from dotenv import load_dotenv
 import os
-import json
+from terminaltables import AsciiTable
 from itertools import count
-from tabulate import tabulate
 from contextlib import suppress
 
 
@@ -20,7 +18,7 @@ def get_salary_calculation(payment_from, payment_to):
     return salary
 
 
-def get_vacancies_hh(programming_languages, max_attempts=3, max_pages=None):
+def get_vacancies_hh(programming_languages):
     hh_url = "https://api.hh.ru/vacancies"
     vacancies_hh = []
     params = {
@@ -46,7 +44,7 @@ def predict_rub_salary_hh(vacancies_hh):
     for vacancy in vacancies_hh:
         salary_from = vacancy.get("payment_from")
         salary_to = vacancy.get("payment_to")
-        salary = predict_rub_salary(salary_from, salary_to)
+        salary = get_salary_calculation(salary_from, salary_to)
         if salary:
             total_salary += salary
             vacancies_count += 1
@@ -68,7 +66,7 @@ def get_vacancies_superjob(superjob_secret_key, programming_languages, max_attem
     vacancies_sj = []
     for page in count(0):
         params['page'] = page
-        response = requests.get(superjob_url, headers=headers, params=params)
+        response = requests.get(superjob_url, headers=headers, params=params, timeout=60)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as ex:
@@ -104,15 +102,12 @@ def predict_rub_salary_for_superJob(vacancies_sj):
 
 
 def create_table(languages_rate, table_name):
-    table_vacansies = []
-    for lang, lang_stats in languages_rate.items():
-        table_row = [
-            lang,
-            lang_stats['vacancies_found'],
-            lang_stats['vacancies_processed'],
-            f"{lang_stats['average_salary']:.2f}" if lang_stats['average_salary'] is not None else "None",
+    full_table = [["Язык программирования", "Вакансий найдено", "Вакансий обработано", "Средняя зарплата"]]
+    for language, content in languages_rate.items():
+        table_params = [
+            language, content["vacancies_found"], content["vacancies_processed"], content["average_salary"]
         ]
-        table_vacansies.append(table_row)
+        full_table.append(table_params)
     table = AsciiTable(full_table, table_name)
     return table
 
@@ -166,8 +161,8 @@ def main():
     ]
     languages_rate_sj = make_superjob_languages_rate(superjob_secret_key, programming_languages)
     languages_rate_hh = make_headhunter_languages_rate(programming_languages)
-    table_sj = print_table(languages_rate_sj, "SuperJob Moscow")
-    table_hh = print_table(languages_rate_hh, "HeadHunter Moscow")
+    table_sj = create_table(languages_rate_sj, "SuperJob Moscow")
+    table_hh = create_table(languages_rate_hh, "HeadHunter Moscow")
     print(f"{table_sj.table}\n\n{table_hh.table}")
 
 
